@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Audiencias - Asesoría Jurídica EsSalud</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Config for EsSalud Corporate Colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        essalud: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#badffd',
+                            500: '#0072C6', // EsSalud Primary Blue
+                            600: '#005da3',
+                            700: '#004a82',
+                            800: '#063f6d',
+                            900: '#0b3559',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .pulse-urgent {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col">
+
+    <!-- HEADER CORPORATIVO -->
+    <header class="bg-essalud-700 text-white shadow-lg border-b-4 border-emerald-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white p-2 rounded-lg shadow-inner">
+                    <!-- Representación de Logo EsSalud Cruz y Ondas -->
+                    <svg class="h-10 w-10 text-essalud-500" viewBox="0 0 100 100" fill="currentColor">
+                        <rect x="35" y="10" width="30" height="80" rx="5" />
+                        <rect x="10" y="35" width="80" height="30" rx="5" />
+                        <path d="M20 75 Q 50 60, 80 75" stroke="currentColor" stroke-width="8" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">EsSalud</h1>
+                    <p class="text-xs text-essalud-100 tracking-wider font-semibold uppercase">Oficina de Asesoría Jurídica</p>
+                </div>
+            </div>
+            <div class="text-center md:text-right">
+                <h2 class="text-lg font-semibold text-emerald-400">Sistema Inteligente de Control de Audiencias</h2>
+                <p id="current-date" class="text-sm text-essalud-100 font-medium"></p>
+            </div>
+        </div>
+    </header>
+
+    <!-- NOTIFICATION BANNER (AUTOMÁTICO) -->
+    <div id="urgent-alert-banner" class="hidden bg-amber-50 border-y border-amber-200 text-amber-800 px-4 py-3 shadow-inner">
+        <div class="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center space-x-2">
+                <span class="flex h-3 w-3 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                <p class="text-sm font-medium">
+                    <strong class="font-bold">¡Atención!</strong> Tienes audiencias programadas en los próximos 4 días. Revisa la lista resaltada en rojo.
+                </p>
+            </div>
+            <button onclick="scrollToUrgent()" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold py-1 px-3 rounded transition shadow-sm">
+                Ver Urgentes
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- SECCIÓN DE KPI METRICS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            
+            <!-- TOTAL AUDIENCIAS -->
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-6 border-l-4 border-essalud-500 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Registradas</p>
+                    <h3 id="stat-total" class="text-3xl font-bold text-slate-800 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-essalud-50 text-essalud-600 rounded-full">
+                    <i class="fa-solid fa-folder-open text-xl"></i>
+                </div>
+            </div>
+
+            <!-- PROXIMAS (4 DIAS) -->
+            <div id="card-upcoming" class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-6 border-l-4 border-red-500 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider text-red-600">Próximas (4 Días)</p>
+                    <h3 id="stat-upcoming" class="text-3xl font-bold text-red-600 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-red-50 text-red-500 rounded-full animate-bounce">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                </div>
+            </div>
+
+            <!-- PENDIENTES / PROGRAMADAS -->
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-6 border-l-4 border-amber-500 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Programadas</p>
+                    <h3 id="stat-pending" class="text-3xl font-bold text-slate-800 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-amber-50 text-amber-500 rounded-full">
+                    <i class="fa-solid fa-clock text-xl"></i>
+                </div>
+            </div>
+
+            <!-- COMPLETADAS -->
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-6 border-l-4 border-emerald-500 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Realizadas</p>
+                    <h3 id="stat-completed" class="text-3xl font-bold text-slate-800 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-emerald-50 text-emerald-500 rounded-full">
+                    <i class="fa-solid fa-circle-check text-xl"></i>
+                </div>
+            </div>
+
+            <!-- SUSPENDIDAS -->
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-6 border-l-4 border-rose-500 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Suspendidas</p>
+                    <h3 id="stat-suspended" class="text-3xl font-bold text-slate-800 mt-1">0</h3>
+                </div>
+                <div class="p-3 bg-rose-50 text-rose-500 rounded-full">
+                    <i class="fa-solid fa-circle-pause text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- BARRA DE ACCIONES Y BÚSQUEDA -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 flex flex-col lg:flex-row justify-between items-center gap-4">
+            <!-- Buscador y Filtro -->
+            <div class="w-full lg:w-2/3 flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-grow">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" id="search-input" onkeyup="filterHearings()" placeholder="Buscar por expediente, materia, demandante o abogado..." class="pl-10 w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2.5 text-sm transition">
+                </div>
+                <select id="filter-state" onchange="filterHearings()" class="rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2.5 px-4 text-sm bg-white font-medium text-slate-700 cursor-pointer">
+                    <option value="todos">Todos los estados</option>
+                    <option value="Programada">Programada</option>
+                    <option value="Realizada">Realizada</option>
+                    <option value="Suspendida">Suspendida</option>
+                </select>
+            </div>
+
+            <!-- Botoneras principales -->
+            <div class="w-full lg:w-auto flex flex-wrap justify-end gap-3">
+                <button onclick="openModal()" class="w-full sm:w-auto bg-essalud-600 hover:bg-essalud-700 text-white text-sm font-bold py-2.5 px-5 rounded-lg flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 shadow-md">
+                    <i class="fa-solid fa-plus text-base"></i> Agregar Audiencia
+                </button>
+                <button onclick="exportToExcel()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 px-5 rounded-lg flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 shadow-md">
+                    <i class="fa-solid fa-file-excel text-base"></i> Exportar a Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- TABLA DE CONTROL DE AUDIENCIAS (ESTILO EXCEL PROFESIONAL) -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider font-bold text-xs border-b border-slate-200">
+                        <tr>
+                            <th scope="col" class="px-6 py-4">Estado Alert</th>
+                            <th scope="col" class="px-6 py-4">Expediente</th>
+                            <th scope="col" class="px-6 py-4">Tipo / Materia</th>
+                            <th scope="col" class="px-6 py-4">Demandante / Parte</th>
+                            <th scope="col" class="px-6 py-4">Órgano / Juzgado</th>
+                            <th scope="col" class="px-6 py-4">Fecha & Hora</th>
+                            <th scope="col" class="px-6 py-4">Abogado</th>
+                            <th scope="col" class="px-6 py-4 text-center">Enlace Audiencia</th>
+                            <th scope="col" class="px-6 py-4 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hearings-table-body" class="divide-y divide-slate-100 text-slate-700">
+                        <!-- Las filas de datos se generarán dinámicamente -->
+                        <tr id="empty-state-row">
+                            <td colspan="9" class="px-6 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="fa-solid fa-file-invoice text-4xl mb-3 text-slate-300"></i>
+                                    <p class="font-medium text-slate-500">No hay audiencias registradas</p>
+                                    <p class="text-xs text-slate-400 mt-1">Presiona "Agregar Audiencia" o "Cargar Pruebas" para comenzar.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FORM MODAL (AGREGAR / EDITAR AUDIENCIA) -->
+    <div id="hearing-modal" class="fixed inset-0 bg-slate-900 bg-opacity-55 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="modal-container">
+            <!-- Modal Header -->
+            <div class="bg-essalud-600 text-white px-6 py-4 flex justify-between items-center">
+                <h3 id="modal-title" class="text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-gavel"></i> Registrar Nueva Audiencia
+                </h3>
+                <button onclick="closeModal()" class="text-white hover:text-slate-200 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Form -->
+            <form id="hearing-form" onsubmit="saveHearing(event)" class="p-6 space-y-4">
+                <input type="hidden" id="edit-id">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Expediente -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nº Expediente</label>
+                        <input type="text" id="form-expediente" required placeholder="Ej. 12345-2026-0-1801-JR-LA-01" class="w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition">
+                    </div>
+                    <!-- Materia / Tipo de Proceso -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Materia / Proceso</label>
+                        <input type="text" id="form-materia" required placeholder="Ej. Impugnación de Despido / Civil" class="w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Demandante / Codemandante -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Parte Contraria (Demandante)</label>
+                        <input type="text" id="form-demandante" required placeholder="Nombre completo del demandante" class="w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition">
+                    </div>
+                    <!-- Órgano Jurisdiccional -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Órgano Jurisdiccional / Juzgado</label>
+                        <input type="text" id="form-juzgado" required placeholder="Ej. 3er Juzgado Especializado de Trabajo" class="w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Fecha y Hora -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Fecha y Hora de la Audiencia</label>
+                        <input type="datetime-local" id="form-fecha" required class="w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition">
+                    </div>
+                    <!-- Estado -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Estado</label>
+                        <select id="form-estado" class="w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition cursor-pointer">
+                            <option value="Programada">Programada</option>
+                            <option value="Realizada">Realizada</option>
+                            <option value="Suspendida">Suspendida</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Abogado Responsable -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Abogado Responsable (EsSalud)</label>
+                        <input type="text" id="form-abogado" required placeholder="Dr(a). Nombre y Apellido" class="w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition">
+                    </div>
+                    <!-- Teléfono (WhatsApp) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Teléfono Notificación (WhatsApp)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                                +51
+                            </span>
+                            <input type="tel" id="form-telefono" placeholder="Ej. 987654321" class="pl-10 w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition" pattern="[0-9]{9}" title="Ingrese 9 dígitos válidos">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Enlace de Audiencia (Google Meet / Teams / etc.) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Enlace Virtual (Google Meet / Teams)</label>
+                        <input type="url" id="form-enlace" placeholder="https://meet.google.com/..." class="w-full rounded-lg border border-slate-300 focus:border-essalud-500 focus:ring-2 focus:ring-essalud-100 py-2 px-3 text-sm transition">
+                    </div>
+                </div>
+
+                <!-- Footer del Modal -->
+                <div class="border-t border-slate-150 pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-sm font-bold text-white bg-essalud-600 hover:bg-essalud-700 rounded-lg shadow transition">
+                        Guardar Registro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIONES TOAST -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+
+    <!-- FOOTER CORPORATIVO -->
+    <footer class="bg-slate-800 text-slate-400 py-6 mt-12 border-t border-slate-700 text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p>&copy; 2026 EsSalud - Gerencia Central de Asesoría Jurídica. Todos los derechos reservados.</p>
+            <div class="flex gap-4">
+                <span class="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold"><span class="h-2 w-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span> Sistema Local Seguro</span>
+                <span class="text-slate-500">v2.1.0</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- WIDGET FLOTANTE DE PRÓXIMA AUDIENCIA (SISTEMA INTELIGENTE GOZU) -->
+    <div id="imminent-hearing-widget" class="fixed bottom-6 right-6 z-40 transform translate-y-10 opacity-0 transition-all duration-700 pointer-events-none hidden">
+        <div class="relative bg-white/90 backdrop-blur-xl border border-red-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(239,68,68,0.4)] p-5 w-80 lg:w-96 overflow-hidden pointer-events-auto">
+            <!-- Brillo decorativo animado -->
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-red-400 to-rose-600 rounded-full blur-3xl opacity-20 animate-pulse"></div>
+            
+            <!-- Encabezado del Widget -->
+            <div class="flex items-center justify-between mb-3 relative z-10">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/40 relative">
+                        <i class="fa-solid fa-scale-balanced animate-bounce"></i>
+                        <span class="absolute top-0 right-0 flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-white border border-red-500"></span>
+                        </span>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600 uppercase tracking-wider">Alerta de Audiencia</h4>
+                        <p class="text-[11px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded text-center mt-0.5 border border-slate-200 transition-colors" id="widget-time-left">Calculando...</p>
+                    </div>
+                </div>
+                <button onclick="closeWidget()" class="text-slate-400 hover:text-red-600 transition bg-white rounded-full w-7 h-7 flex items-center justify-center shadow-sm border border-slate-100 hover:bg-red-50"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+            
+            <!-- Detalles del Expediente -->
+            <div class="space-y-2 mb-4 relative z-10 bg-slate-50 p-3.5 rounded-xl border border-slate-100 shadow-inner">
+                <p class="text-sm font-extrabold text-slate-800 truncate" id="widget-expediente" title="Expediente">Exp: ...</p>
+                <div class="flex items-start gap-2 text-xs text-slate-600">
+                    <i class="fa-solid fa-building-columns mt-0.5 text-slate-400"></i>
+                    <p class="font-medium line-clamp-2" id="widget-juzgado">...</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-medium text-essalud-600 truncate bg-essalud-50 p-2 rounded-lg border border-essalud-100 mt-1">
+                    <i class="fa-solid fa-user-tie text-essalud-500"></i>
+                    <p class="truncate" id="widget-demandante">...</p>
+                </div>
+            </div>
+            
+            <!-- Botón de Acción Directa -->
+            <div class="flex flex-col gap-2 relative z-10">
+                <a href="#" id="widget-link" target="_blank" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-sm font-bold py-3 rounded-xl transition-all shadow-md shadow-red-500/30 hover:shadow-red-500/50 hover:-translate-y-0.5">
+                    <i class="fa-solid fa-video"></i> <span id="widget-link-text">Ingresar a Sala Virtual</span>
+                </a>
+                <button id="widget-wsp-btn" onclick="" class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebd5c] text-white text-sm font-bold py-2.5 rounded-xl transition-all shadow-md hover:-translate-y-0.5">
+                    <i class="fa-brands fa-whatsapp text-lg"></i> Enviar Alerta por WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE JAVASCRIPT LOGIC -->
+    <script>
+        // State management
+        let hearings = [];
+
+        // Initialize and load data on load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Set real-time Spanish localized date in header
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString('es-ES', dateOptions);
+
+            loadHearingsFromStorage();
+            updateUI();
+        });
+
+        // Load data from Local Storage
+        function loadHearingsFromStorage() {
+            const stored = localStorage.getItem('essalud_hearings');
+            if (stored) {
+                hearings = JSON.parse(stored);
+            } else {
+                hearings = [];
+            }
+        }
+
+        // Save data to Local Storage
+        function saveHearingsToStorage() {
+            localStorage.setItem('essalud_hearings', JSON.stringify(hearings));
+            updateUI();
+        }
+
+        // Add pre-populated sample data for testing & demonstrative purposes
+        function loadSampleData() {
+            const today = new Date();
+            
+            // Generate dynamic test dates relative to today
+            const formatOffsetDate = (days, hours) => {
+                const date = new Date(today);
+                date.setDate(date.getDate() + days);
+                date.setHours(date.getHours() + hours);
+                return date.toISOString().slice(0, 16); // Formato YYYY-MM-DDTHH:MM
+            };
+
+            const samples = [
+                {
+                    id: 'sample-1',
+                    expediente: '04512-2025-0-1801-JR-LA-02',
+                    materia: 'Impugnación de Despido',
+                    demandante: 'Juan Carlos Mendoza Quispe',
+                    juzgado: '2do Juzgado Constitucional de Lima',
+                    fecha: formatOffsetDate(1, 2), // Mañana (Urgente - dentro de 48 horas)
+                    estado: 'Programada',
+                    abogado: 'Dr. Alberto Benavides Ruiz',
+                    telefono: '987654321',
+                    enlace: 'https://meet.google.com/abc-defg-hij'
+                },
+                {
+                    id: 'sample-2',
+                    expediente: '08923-2024-0-1801-JR-LA-10',
+                    materia: 'Pago de Beneficios Sociales',
+                    demandante: 'María Elena Flores Ramos',
+                    juzgado: '5to Juzgado Especializado de Trabajo',
+                    fecha: formatOffsetDate(4, 0), // En 4 días
+                    estado: 'Programada',
+                    abogado: 'Dra. Patricia Valdivia',
+                    telefono: '912345678',
+                    enlace: 'https://teams.microsoft.com/l/meetup-join/123'
+                },
+                {
+                    id: 'sample-3',
+                    expediente: '10234-2023-0-1801-JR-CA-05',
+                    materia: 'Acción Contencioso Administrativa',
+                    demandante: 'Clínica San Borja S.A.',
+                    juzgado: '1er Juzgado de Subespecialidad Comercial',
+                    fecha: formatOffsetDate(-2, 0), // Hace 2 días
+                    estado: 'Realizada',
+                    abogado: 'Dr. Ricardo Pazos',
+                    telefono: '',
+                    enlace: ''
+                },
+                {
+                    id: 'sample-4',
+                    expediente: '00155-2026-0-1801-JR-LA-01',
+                    materia: 'Indemnización por Daños y Perjuicios',
+                    demandante: 'Jorge Luis Bustamante Soto',
+                    juzgado: '11° Juzgado Especializado Laboral',
+                    fecha: formatOffsetDate(0, 3), // Hoy en 3 horas (Urgente!)
+                    estado: 'Programada',
+                    abogado: 'Dra. Patricia Valdivia',
+                    telefono: '987654321',
+                    enlace: 'https://meet.google.com/xyz-qwe-asd'
+                }
+            ];
+
+            hearings = samples;
+            saveHearingsToStorage();
+            showToast('¡Datos de prueba cargados exitosamente!', 'success');
+        }
+
+        // Render Table & Cards
+        function updateUI() {
+            const tableBody = document.getElementById('hearings-table-body');
+            const searchInput = document.getElementById('search-input').value.toLowerCase();
+            const filterState = document.getElementById('filter-state').value;
+            
+            // Clean table excluding header template
+            tableBody.innerHTML = '';
+
+            let filteredHearings = hearings.filter(h => {
+                const matchesSearch = h.expediente.toLowerCase().includes(searchInput) ||
+                                     h.materia.toLowerCase().includes(searchInput) ||
+                                     h.demandante.toLowerCase().includes(searchInput) ||
+                                     h.abogado.toLowerCase().includes(searchInput) ||
+                                     h.juzgado.toLowerCase().includes(searchInput);
+                
+                const matchesState = filterState === 'todos' || h.estado === filterState;
+                
+                return matchesSearch && matchesState;
+            });
+
+            // Sort by Date ascending
+            filteredHearings.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            if (filteredHearings.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center text-slate-400">
+                            <div class="flex flex-col items-center justify-center">
+                                <i class="fa-solid fa-triangle-exclamation text-3xl mb-2 text-slate-300"></i>
+                                <p class="font-medium text-slate-500">No se encontraron resultados</p>
+                                <p class="text-xs text-slate-400 mt-1">Prueba cambiando los criterios de búsqueda o filtro.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                filteredHearings.forEach(h => {
+                    const statusStyles = getStatusStyles(h.estado);
+                    const isUrgent = checkUrgency(h.fecha, h.estado);
+                    
+                    const formattedDate = new Date(h.fecha).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                    const formattedTime = new Date(h.fecha).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+
+                    const tr = document.createElement('tr');
+                    tr.className = `hover:bg-slate-50 transition border-b border-slate-100 ${isUrgent ? 'bg-red-50 hover:bg-red-100 font-medium' : ''}`;
+                    if (isUrgent) {
+                        tr.setAttribute('data-urgent', 'true');
+                    }
+
+                    tr.innerHTML = `
+                        <!-- Indicador de Alerta de Próxima Audiencia -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            ${isUrgent ? `
+                                <div class="inline-flex items-center gap-1.5 px-2 py-1 bg-red-600 text-white text-xs font-black rounded-full pulse-urgent shadow">
+                                    <i class="fa-solid fa-triangle-exclamation text-xs"></i> ¡INMINENTE!
+                                </div>
+                            ` : `
+                                <span class="text-xs text-slate-400 font-medium">— Sin alertas —</span>
+                            `}
+                        </td>
+                        <!-- Expediente -->
+                        <td class="px-6 py-4 whitespace-nowrap font-semibold text-slate-950">
+                            ${h.expediente}
+                        </td>
+                        <!-- Materia -->
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-slate-900">${h.materia}</div>
+                        </td>
+                        <!-- Demandante -->
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-slate-800 font-medium">${h.demandante}</div>
+                        </td>
+                        <!-- Juzgado -->
+                        <td class="px-6 py-4">
+                            <div class="text-xs text-slate-500 font-semibold max-w-[200px] truncate" title="${h.juzgado}">${h.juzgado}</div>
+                        </td>
+                        <!-- Fecha y Hora -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-slate-900">${formattedDate}</div>
+                            <div class="text-xs text-slate-500 font-semibold"><i class="fa-regular fa-clock text-slate-400 mr-1"></i>${formattedTime}</div>
+                        </td>
+                        <!-- Abogado -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
+                            ${h.abogado}
+                        </td>
+                        <!-- Enlace -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            ${h.enlace ? `
+                                <a href="${h.enlace}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 bg-essalud-50 text-essalud-600 rounded-lg hover:bg-essalud-100 text-xs font-bold transition border border-essalud-200">
+                                    <i class="fa-solid fa-video text-xs"></i> Unirse
+                                </a>
+                            ` : `
+                                <span class="text-slate-400 text-xs italic">No requiere</span>
+                            `}
+                        </td>
+                        <!-- Acciones -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center space-x-1">
+                            <button onclick="sendWhatsAppAlert('${h.id}')" class="p-2 text-[#25D366] hover:text-white hover:bg-[#25D366] rounded-lg transition" title="Notificar por WhatsApp">
+                                <i class="fa-brands fa-whatsapp text-lg"></i>
+                            </button>
+                            <button onclick="editHearing('${h.id}')" class="p-2 text-essalud-600 hover:text-white hover:bg-essalud-500 rounded-lg transition" title="Editar Audiencia">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteHearing('${h.id}')" class="p-2 text-red-500 hover:text-white hover:bg-red-500 rounded-lg transition" title="Eliminar Audiencia">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                            <button onclick="toggleState('${h.id}')" class="p-2 ${statusStyles.btnClass} rounded-lg transition" title="Cambiar Estado">
+                                <i class="fa-solid fa-arrows-rotate"></i> <span class="text-xs font-bold">${h.estado}</span>
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            // Recalculate metrics
+            calculateMetrics();
+
+            // Activar sistema radar de la audiencia más inminente
+            checkImminentHearing();
+        }
+
+        // Return custom CSS styles and button tags based on status
+        function getStatusStyles(state) {
+            switch (state) {
+                case 'Realizada':
+                    return { btnClass: 'text-emerald-600 hover:text-white hover:bg-emerald-500' };
+                case 'Suspendida':
+                    return { btnClass: 'text-rose-500 hover:text-white hover:bg-rose-500' };
+                case 'Programada':
+                default:
+                    return { btnClass: 'text-amber-600 hover:text-white hover:bg-amber-500' };
+            }
+        }
+
+        // Evaluate if hearing is within 4 days (96 hours) and pending/scheduled
+        function checkUrgency(hearingDateStr, state) {
+            if (state !== 'Programada') return false;
+            
+            const now = new Date();
+            const hearingDate = new Date(hearingDateStr);
+            const differenceInTime = hearingDate.getTime() - now.getTime();
+            const differenceInHours = differenceInTime / (1000 * 3600);
+            
+            // Urgency window: from now up to next 96 hours (4 días)
+            return differenceInHours > 0 && differenceInHours <= 96;
+        }
+
+        // Calculate metrics and show/hide global banner
+        function calculateMetrics() {
+            const total = hearings.length;
+            const completed = hearings.filter(h => h.estado === 'Realizada').length;
+            const pending = hearings.filter(h => h.estado === 'Programada').length;
+            const suspended = hearings.filter(h => h.estado === 'Suspendida').length;
+            
+            let urgentCount = 0;
+            hearings.forEach(h => {
+                if (checkUrgency(h.fecha, h.estado)) {
+                    urgentCount++;
+                }
+            });
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-completed').innerText = completed;
+            document.getElementById('stat-pending').innerText = pending;
+            document.getElementById('stat-suspended').innerText = suspended;
+            document.getElementById('stat-upcoming').innerText = urgentCount;
+
+            const banner = document.getElementById('urgent-alert-banner');
+            const urgentCard = document.getElementById('card-upcoming');
+
+            if (urgentCount > 0) {
+                banner.classList.remove('hidden');
+                urgentCard.classList.remove('border-l-4', 'border-red-500');
+                urgentCard.classList.add('bg-red-500', 'text-white');
+                document.querySelector('#card-upcoming p').classList.remove('text-slate-500');
+                document.querySelector('#card-upcoming p').classList.add('text-white', 'font-semibold');
+                document.getElementById('stat-upcoming').classList.remove('text-red-600');
+                document.getElementById('stat-upcoming').classList.add('text-white');
+            } else {
+                banner.classList.add('hidden');
+                urgentCard.classList.add('border-l-4', 'border-red-500');
+                urgentCard.classList.remove('bg-red-500', 'text-white');
+                document.querySelector('#card-upcoming p').classList.add('text-slate-500');
+                document.querySelector('#card-upcoming p').classList.remove('text-white', 'font-semibold');
+                document.getElementById('stat-upcoming').classList.add('text-red-600');
+                document.getElementById('stat-upcoming').classList.remove('text-white');
+            }
+        }
+
+        // --- SISTEMA INTELIGENTE DE NOTIFICACIÓN DE AUDIENCIA INMINENTE ---
+        let widgetDismissedFor = null;
+
+        function checkImminentHearing() {
+            const now = new Date();
+            
+            // Filtrar solo las audiencias programadas que aún no han pasado
+            const pendingFutureHearings = hearings.filter(h => {
+                const hearingDate = new Date(h.fecha);
+                return h.estado === 'Programada' && hearingDate > now;
+            });
+
+            // Ordenar por proximidad temporal (la más cercana primero)
+            pendingFutureHearings.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            const closestHearing = pendingFutureHearings[0];
+            const widget = document.getElementById('imminent-hearing-widget');
+
+            if (closestHearing) {
+                const hearingDate = new Date(closestHearing.fecha);
+                const diffHours = (hearingDate - now) / (1000 * 3600);
+                
+                // Mostrar si es dentro de los 4 días (96 horas) y no ha sido descartada
+                if (diffHours <= 96 && widgetDismissedFor !== closestHearing.id) {
+                    populateWidget(closestHearing, hearingDate, diffHours);
+                    widget.classList.remove('hidden');
+                    // Pequeño retraso para permitir la transición fluida de CSS
+                    setTimeout(() => {
+                        widget.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+                        widget.classList.add('translate-y-0', 'opacity-100');
+                    }, 50);
+                } else if (diffHours > 96 || widgetDismissedFor === closestHearing.id) {
+                    hideWidget();
+                }
+            } else {
+                hideWidget();
+            }
+        }
+
+        function populateWidget(hearing, dateObj, diffHours) {
+            document.getElementById('widget-expediente').innerText = `Exp: ${hearing.expediente}`;
+            document.getElementById('widget-juzgado').innerText = hearing.juzgado;
+            document.getElementById('widget-demandante').innerText = hearing.demandante;
+            
+            const timeLeftEl = document.getElementById('widget-time-left');
+            
+            // Lógica dinámica para la cuenta regresiva de 4 días
+            const days = Math.floor(diffHours / 24);
+            const remainingHours = Math.floor(diffHours % 24);
+
+            if (diffHours < 1) {
+                const minutes = Math.max(1, Math.floor(diffHours * 60));
+                timeLeftEl.innerText = `¡En ${minutes} minutos!`;
+                timeLeftEl.className = "text-[12px] font-black bg-red-100 text-red-700 px-2.5 py-0.5 rounded text-center mt-0.5 border border-red-200 animate-pulse shadow-sm";
+            } else if (diffHours < 24) {
+                const hours = Math.floor(diffHours);
+                timeLeftEl.innerText = `En aprox. ${hours} hora${hours > 1 ? 's' : ''}`;
+                timeLeftEl.className = "text-[11px] text-orange-700 font-bold bg-orange-100 px-2 py-0.5 rounded text-center mt-0.5 border border-orange-200";
+            } else if (days === 1) {
+                timeLeftEl.innerText = `Mañana a las ${dateObj.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', hour12:true})}`;
+                timeLeftEl.className = "text-[11px] text-amber-700 font-bold bg-amber-100 px-2 py-0.5 rounded text-center mt-0.5 border border-amber-200";
+            } else {
+                timeLeftEl.innerText = `En ${days} días y ${remainingHours}h`;
+                timeLeftEl.className = "text-[11px] text-blue-700 font-bold bg-blue-100 px-2 py-0.5 rounded text-center mt-0.5 border border-blue-200";
+            }
+
+            const linkEl = document.getElementById('widget-link');
+            const linkText = document.getElementById('widget-link-text');
+            const wspBtn = document.getElementById('widget-wsp-btn');
+            
+            // Limpiar eventos previos de clics
+            linkEl.onclick = null;
+            
+            // Configurar botón de WhatsApp del widget
+            wspBtn.onclick = () => sendWhatsAppAlert(hearing.id);
+
+            if (hearing.enlace && hearing.enlace.trim() !== '') {
+                // Modo Automático: Abrir la sala virtual
+                linkEl.href = hearing.enlace;
+                linkEl.setAttribute('target', '_blank'); // Abre en una nueva pestaña
+                linkEl.style.display = 'flex';
+                linkText.innerText = 'Ingresar a Sala Virtual';
+                linkEl.className = "w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-sm font-bold py-3 rounded-xl transition-all shadow-md shadow-red-500/30 hover:shadow-red-500/50 hover:-translate-y-0.5 relative z-10";
+            } else {
+                // Modo Inteligente: Si falta el link, pide agregarlo
+                linkEl.href = "#";
+                linkEl.removeAttribute('target');
+                linkEl.style.display = 'flex';
+                linkText.innerText = 'Vincular Sala Virtual';
+                linkEl.className = "w-full flex items-center justify-center gap-2 bg-slate-800 text-white hover:bg-slate-900 text-sm font-bold py-3 rounded-xl transition-all shadow-lg hover:-translate-y-0.5 relative z-10";
+                linkEl.onclick = (e) => {
+                    e.preventDefault();
+                    editHearing(hearing.id); // Magia: Abre el modal de edición automáticamente
+                };
+            }
+        }
+
+        function hideWidget() {
+            const widget = document.getElementById('imminent-hearing-widget');
+            widget.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
+            widget.classList.remove('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                widget.classList.add('hidden');
+            }, 700); // Dar tiempo a que la animación CSS termine
+        }
+
+        function closeWidget() {
+            const now = new Date();
+            // Almacenar temporalmente en la sesión qué audiencia hemos cerrado para no volver a molestar
+            const pendingFutureHearings = hearings.filter(h => h.estado === 'Programada' && new Date(h.fecha) > now);
+            pendingFutureHearings.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+            if(pendingFutureHearings.length > 0) {
+                widgetDismissedFor = pendingFutureHearings[0].id;
+            }
+            hideWidget();
+        }
+        // --- FIN DEL SISTEMA INTELIGENTE ---
+
+        // Scroll page directly to urgent records
+        function scrollToUrgent() {
+            const firstUrgent = document.querySelector('[data-urgent="true"]');
+            if (firstUrgent) {
+                firstUrgent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstUrgent.classList.add('ring-4', 'ring-red-400', 'ring-opacity-50');
+                setTimeout(() => {
+                    firstUrgent.classList.remove('ring-4', 'ring-red-400', 'ring-opacity-50');
+                }, 3000);
+            }
+        }
+
+        // Filter trigger
+        function filterHearings() {
+            updateUI();
+        }
+
+        // Modal triggers
+        function openModal(editId = null) {
+            const modal = document.getElementById('hearing-modal');
+            const container = document.getElementById('modal-container');
+            const form = document.getElementById('hearing-form');
+            form.reset();
+            document.getElementById('edit-id').value = '';
+
+            if (editId) {
+                const h = hearings.find(item => item.id === editId);
+                if (h) {
+                    document.getElementById('modal-title').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Modificar Audiencia';
+                    document.getElementById('edit-id').value = h.id;
+                    document.getElementById('form-expediente').value = h.expediente;
+                    document.getElementById('form-materia').value = h.materia;
+                    document.getElementById('form-demandante').value = h.demandante;
+                    document.getElementById('form-juzgado').value = h.juzgado;
+                    document.getElementById('form-fecha').value = h.fecha;
+                    document.getElementById('form-estado').value = h.estado;
+                    document.getElementById('form-abogado').value = h.abogado;
+                    document.getElementById('form-telefono').value = h.telefono || '';
+                    document.getElementById('form-enlace').value = h.enlace;
+                }
+            } else {
+                document.getElementById('modal-title').innerHTML = '<i class="fa-solid fa-gavel"></i> Registrar Nueva Audiencia';
+                // Poner la fecha y hora por defecto a la hora actual redondeada
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getMinutes() % 15);
+                document.getElementById('form-fecha').value = now.toISOString().slice(0, 16);
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                container.classList.remove('scale-95', 'opacity-0');
+                container.classList.add('scale-100', 'opacity-100');
+            }, 50);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('hearing-modal');
+            const container = document.getElementById('modal-container');
+            container.classList.add('scale-95', 'opacity-0');
+            container.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Save hearing (Add or Update)
+        function saveHearing(event) {
+            event.preventDefault();
+            
+            const editId = document.getElementById('edit-id').value;
+            const rawDateValue = document.getElementById('form-fecha').value;
+            
+            const hearingData = {
+                id: editId || 'h-' + Date.now(),
+                expediente: document.getElementById('form-expediente').value.trim(),
+                materia: document.getElementById('form-materia').value.trim(),
+                demandante: document.getElementById('form-demandante').value.trim(),
+                juzgado: document.getElementById('form-juzgado').value.trim(),
+                fecha: rawDateValue,
+                estado: document.getElementById('form-estado').value,
+                abogado: document.getElementById('form-abogado').value.trim(),
+                telefono: document.getElementById('form-telefono').value.trim(),
+                enlace: document.getElementById('form-enlace').value.trim()
+            };
+
+            if (editId) {
+                // Update existing
+                const index = hearings.findIndex(item => item.id === editId);
+                if (index !== -1) {
+                    hearings[index] = hearingData;
+                    showToast('Audiencia actualizada con éxito.', 'info');
+                }
+            } else {
+                // Add new
+                hearings.push(hearingData);
+                showToast('Audiencia registrada en el sistema.', 'success');
+            }
+
+            saveHearingsToStorage();
+            closeModal();
+        }
+
+        // Quick state toggle directly from the table
+        function toggleState(id) {
+            const index = hearings.findIndex(h => h.id === id);
+            if (index !== -1) {
+                const current = hearings[index].estado;
+                let next = 'Programada';
+                if (current === 'Programada') next = 'Realizada';
+                else if (current === 'Realizada') next = 'Suspendida';
+                
+                hearings[index].estado = next;
+                saveHearingsToStorage();
+                showToast(`Estado cambiado a: ${next}`, 'info');
+            }
+        }
+
+        // Edit triggers modal
+        function editHearing(id) {
+            openModal(id);
+        }
+
+        // Delete hearing with double confirmation styling
+        function deleteHearing(id) {
+            if (confirm('¿Está seguro de que desea eliminar este registro de audiencia?')) {
+                hearings = hearings.filter(h => h.id !== id);
+                saveHearingsToStorage();
+                showToast('Registro eliminado satisfactoriamente.', 'danger');
+            }
+        }
+
+        // Send Professional WhatsApp Alert
+        function sendWhatsAppAlert(id) {
+            const h = hearings.find(item => item.id === id);
+            if (!h) return;
+            
+            // Sanitizar número y prepararlo (Se asume código de país +51 Perú por EsSalud)
+            const telefono = h.telefono ? h.telefono.replace(/\D/g, '') : '';
+            
+            if (!telefono || telefono.length < 9) {
+                showToast('Número de teléfono inválido o no registrado. Edite la audiencia para agregarlo.', 'danger');
+                return;
+            }
+
+            const dateObj = new Date(h.fecha);
+            const formattedDate = dateObj.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const formattedTime = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+            // Construir la plantilla profesional del mensaje
+            const text = `🚨 *ALERTA DE AUDIENCIA - ESSALUD* 🚨\n\n` +
+                         `Estimado(a) *${h.abogado}*,\n` +
+                         `Se le recuerda que tiene una audiencia programada:\n\n` +
+                         `📄 *Expediente:* ${h.expediente}\n` +
+                         `⚖️ *Materia:* ${h.materia}\n` +
+                         `👤 *Parte Contraria:* ${h.demandante}\n` +
+                         `🏛️ *Órgano:* ${h.juzgado}\n` +
+                         `📅 *Fecha:* ${formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)}\n` +
+                         `⏰ *Hora:* ${formattedTime}\n\n` +
+                         (h.enlace ? `🔗 *Enlace Virtual:* ${h.enlace}\n\n` : `🏢 *Modalidad:* Presencial (o sin enlace registrado)\n\n`) +
+                         `_Por favor, tome las previsiones del caso. Sistema de Control de Audiencias._`;
+
+            const encodedText = encodeURIComponent(text);
+            const numeroFinal = telefono.startsWith('51') ? telefono : `51${telefono}`;
+            
+            // Usa el API universal de WhatsApp (funciona en web y app de celular)
+            const whatsappUrl = `https://wa.me/${numeroFinal}?text=${encodedText}`; 
+            
+            window.open(whatsappUrl, '_blank');
+            showToast('Abriendo WhatsApp para enviar alerta...', 'success');
+        }
+
+        // Toast alert system
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-emerald-500';
+            let iconClass = 'fa-circle-check';
+            if (type === 'danger') {
+                bgClass = 'bg-red-500';
+                iconClass = 'fa-triangle-exclamation';
+            } else if (type === 'info') {
+                bgClass = 'bg-essalud-500';
+                iconClass = 'fa-circle-info';
+            }
+
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 transition duration-300 transform translate-y-2 opacity-0 text-sm font-medium`;
+            toast.innerHTML = `
+                <i class="fa-solid ${iconClass} text-lg"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 50);
+
+            // Hide and remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 4000);
+        }
+
+        // Advanced Export to CSV (Fully Excel Compatible with UTF-8 BOM)
+        function exportToExcel() {
+            if (hearings.length === 0) {
+                showToast('No hay datos para exportar.', 'danger');
+                return;
+            }
+
+            // Headers matches Excel structure
+            const headers = [
+                'Nº EXPEDIENTE',
+                'TIPO/MATERIA',
+                'PARTE CONTRARIA/DEMANDANTE',
+                'ORGANO JURISDICCIONAL',
+                'FECHA',
+                'HORA',
+                'ABOGADO RESPONSABLE',
+                'ESTADO',
+                'ENLACE VIRTUAL'
+            ];
+
+            const rows = hearings.map(h => {
+                const dateObj = new Date(h.fecha);
+                const formattedDate = dateObj.toLocaleDateString('es-ES');
+                const formattedTime = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                
+                return [
+                    `"${h.expediente.replace(/"/g, '""')}"`,
+                    `"${h.materia.replace(/"/g, '""')}"`,
+                    `"${h.demandante.replace(/"/g, '""')}"`,
+                    `"${h.juzgado.replace(/"/g, '""')}"`,
+                    `"${formattedDate}"`,
+                    `"${formattedTime}"`,
+                    `"${h.abogado.replace(/"/g, '""')}"`,
+                    `"${h.estado}"`,
+                    `"${(h.enlace || '').replace(/"/g, '""')}"`
+                ];
+            });
+
+            // Convert to CSV using semicolon for optimal Excel Spanish regional settings compatibility
+            const csvContent = "\uFEFF" // UTF-8 BOM for character encoding support in Excel
+                + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Control_Audiencias_EsSalud_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('¡Control de audiencias exportado a CSV/Excel con éxito!', 'success');
+        }
+    </script>
+</body>
+</html>
